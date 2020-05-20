@@ -4,11 +4,14 @@ import requests
 import glob
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
+import numpy as np
+
 
 def z_calc(num_tests, usr_score, high, low, avg):
     w_divisor = (-10.07 * (num_tests**-0.1376)) + 10.35
     std_dev = (high-low)/w_divisor
     z_score = (usr_score-avg)/std_dev
+    #print(usr_score,avg,std_dev)
     return z_score
 
 def get_api_scores():
@@ -91,14 +94,18 @@ def file_scores(last_name):
         file_name_split = file.split(" ")
         course_code = file_name_split[file_name_split.index(last_name.upper()) + 1]
         courses[course_code] = z_calc(num_tests, usr_score, high, low, mean)
-    print_course_inorder(courses)
+    return courses
 
 def print_course_inorder(courses):
     ordered_courses = sorted(courses, key=courses.get)
-    ret_string = "Study order:\n"
+    ret_string = "\nStudy order:\n"
     for course in ordered_courses:
         ret_string += course + " (" +str(int(courses[course]*-100)) + ")\n"
     print(ret_string)
+
+def normalProbabilityDensity(x):
+    constant = 1.0 / np.sqrt(2*np.pi)
+    return(constant * np.exp((-x**2) / 2.0) )
 
 
 file_scores("shah")
