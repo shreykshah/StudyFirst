@@ -79,9 +79,11 @@ def file_scores(last_name):
         num_tests = 0
         for assignment in soup.find_all('td', {'class': 'assignment_score'}):
             try:
-                points = float(assignment.find('span',{"class":'original_points'}).text.strip())
-                group = assignment.find('span',{"class":'assignment_group_id'}).text.strip()
-                stats = assignment.find_next('tr',{"class":'comments grade_details assignment_graded'}).find_next('div')["title"].split(", ")
+                points = float(assignment.find('span', {"class":'original_points'}).text.strip())
+                group = assignment.find('span', {"class":'assignment_group_id'}).text.strip()
+                stats = (assignment.find_next('tr',
+                                              {"class":'comments grade_details assignment_graded'})
+                         .find_next('div')["title"].split(", "))
                 mean = float(stats[0][5:])
                 high = float(stats[1][5:])
                 low = float(stats[2][4:])
@@ -104,14 +106,16 @@ def file_scores(last_name):
         low = 0.0
         usr_score = 0.0
         for group in grades:
-            multiplier = float(soup.find('tr', {"id":{"submission_group-"+group}}).find_next('span', {'class':'group_weight'}).text.strip())/100
+            multiplier = (float(soup.find('tr', {"id":{"submission_group-"+group}})
+                                .find_next('span', {'class':'group_weight'}).text.strip())/100)
             high += grades[group]["high"] * multiplier
             mean += grades[group]["mean"] * multiplier
             low += grades[group]["low"] * multiplier
             usr_score += grades[group]["usr_score"] * multiplier
         file_name_split = file.split(" ")
         course_code = file_name_split[file_name_split.index(last_name.upper()) + 1]
-        courses[course_code] = [z_calc(num_tests, usr_score, high, low, mean), percentile_calc(usr_score, high, low, mean)]
+        courses[course_code] = ([z_calc(num_tests, usr_score, high, low, mean),
+                                 percentile_calc(usr_score, high, low, mean)])
     return courses
 
 def print_course_inorder(courses):
@@ -120,7 +124,8 @@ def print_course_inorder(courses):
     ret_string = "\nStudy order:\n"
     for course in ordered_courses:
         ret_string += course + " (" + str(ordinalize(int(courses[course][1]*100))) +" percentile)\n"
-        # ret_string += course + " (" +str(int(courses[course][0]*-100)) +","+ str(int(courses[course][1]*100))+")\n"
+        ret_string += (course + " (" +str(int(courses[course][0]*-100)) +
+                       ","+ str(int(courses[course][1]*100))+")\n")
     print(ret_string)
 
 def ordinalize(n):
