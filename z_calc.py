@@ -75,8 +75,6 @@ def print_course_inorder(courses):
     ret_string = "\nStudy order:\n"
     for course in ordered_courses:
         ret_string += course + " (" + str(ordinalize(int(courses[course][1]*100))) +" percentile)\n"
-        # ret_string += (course + " (" +str(int(courses[course][0]*-100)) +
-        #                ","+ str(int(courses[course][1]*100))+")\n")
     print(ret_string)
 
 def ordinalize(num):
