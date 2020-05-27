@@ -1,5 +1,4 @@
 '''Sorts Canvas classes in order one should study'''
-import json
 import glob
 import requests
 from bs4 import BeautifulSoup
@@ -25,69 +24,25 @@ def percentile_calc(usr_score, high, low, avg):
         return 1-(((high - usr_score)**2)/((high-low)*(low-modec)))
     return ((usr_score-low)**2)/((high-low)*(modec-low))
 
-def get_api_scores():
-    '''Attempt to get scores through Canvas api. This method is deprecated.'''
-    print("deprecated method running")
-    token = "REDACTED"
-    response = requests.get("https://canvas.instructure.com/api/v1/courses?include[]=total_scores&access_token=" + token)
-    json_data = json.loads(response.text)
-    latest_term_id = 0
-    student_id = 0
-    for course in json_data:
-        try:
-            if int(course["enrollment_term_id"]) > latest_term_id:
-                latest_term_id = int(course["enrollment_term_id"])
-                student_id = course["enrollments"][0]["user_id"]
-        except:
-            pass
-    for course in json_data:
-        try:
-            if int(course["enrollment_term_id"]) == latest_term_id:
-                url = ("https://canvas.instructure.com/api/v1/courses/" +
-                       str(course["id"]) + "/users/" + str(student_id) + "/assignments")
-                assignments = requests.get(url)
-                print(url)
-                print(assignments.text)
-        except:
-            pass
-
-    #REDACTED
-    #
-    # print(json.dumps(json_data,indent=2))
-
-def scrape_scores():
-    '''Attempt to scrape scores from Canvas using BeautifulSoup. This method is
-    deprecated.'''
-    print("deprecated method running")
-    s = requests.Session()
-    data = REDACTED
-
-    url = "https://canvas.wisc.edu/courses/REDACTED/grades"
-    r = s.post(url, data=data)
-    print(r)
-
-    # url = "https://canvas.wisc.edu/courses/REDACTED/grades"
-    # html = urlopen(url)
-    # soup = BeautifulSoup(html, "html.parser")
-    # print(soup.prettify())
-
 def file_scores(last_name):
     '''Gets grades from saving the "grades" section as HTML'''
     courses = {}
+    bstat = [0.0, 0.0, 0.0, 0.0]
     for file in glob.glob("*.html"):
         soup = BeautifulSoup(open(file), 'html.parser')
         grades = {}
         num_tests = 0
         for assignment in soup.find_all('td', {'class': 'assignment_score'}):
             try:
-                points = float(assignment.find('span', {"class":'original_points'}).text.strip())
+                bstat[3] = float(assignment.find('span', {"class":'original_points'}).text.strip())
                 group = assignment.find('span', {"class":'assignment_group_id'}).text.strip()
                 stats = (assignment.find_next('tr',
                                               {"class":'comments grade_details assignment_graded'})
                          .find_next('div')["title"].split(", "))
-                mean = float(stats[0][5:])
-                high = float(stats[1][5:])
-                low = float(stats[2][4:])
+                bstat[0] = float(stats[0][5:])
+                bstat[1] = float(stats[1][5:])
+                bstat[2] = float(stats[2][4:])
+
                 if group not in grades:
                     grades[group] = {
                         "high": 0.0,
@@ -95,28 +50,25 @@ def file_scores(last_name):
                         "low": 0.0,
                         "usr_score": 0.0,
                     }
-                grades[group]["high"] += high
-                grades[group]["mean"] += mean
-                grades[group]["low"] += low
-                grades[group]["usr_score"] += points
+                grades[group]["high"] += bstat[1]
+                grades[group]["mean"] += bstat[0]
+                grades[group]["low"] += bstat[2]
+                grades[group]["usr_score"] += bstat[3]
                 num_tests += 1
-            except:
+            except ValueError:
                 pass
-        high = 0.0
-        mean = 0.0
-        low = 0.0
-        usr_score = 0.0
+        bstat[0] = bstat[1] = bstat[2] = bstat[3] = 0.0
         for group in grades:
             multiplier = (float(soup.find('tr', {"id":{"submission_group-"+group}})
                                 .find_next('span', {'class':'group_weight'}).text.strip())/100)
-            high += grades[group]["high"] * multiplier
-            mean += grades[group]["mean"] * multiplier
-            low += grades[group]["low"] * multiplier
-            usr_score += grades[group]["usr_score"] * multiplier
+            bstat[1] += grades[group]["high"] * multiplier
+            bstat[0] += grades[group]["mean"] * multiplier
+            bstat[2] += grades[group]["low"] * multiplier
+            bstat[3] += grades[group]["usr_score"] * multiplier
         file_name_split = file.split(" ")
         course_code = file_name_split[file_name_split.index(last_name.upper()) + 1]
-        courses[course_code] = ([z_calc(num_tests, usr_score, high, low, mean),
-                                 percentile_calc(usr_score, high, low, mean)])
+        courses[course_code] = ([z_calc(num_tests, bstat[3], bstat[1], bstat[2], bstat[0]),
+                                 percentile_calc(bstat[3], bstat[1], bstat[2], bstat[0])])
     return courses
 
 def print_course_inorder(courses):
@@ -125,9 +77,8 @@ def print_course_inorder(courses):
     ret_string = "\nStudy order:\n"
     for course in ordered_courses:
         ret_string += course + " (" + str(ordinalize(int(courses[course][1]*100))) +" percentile)\n"
-        ret_string += (course + " (" +str(int(courses[course][0]*-100)) +
-                       ","+ str(int(courses[course][1]*100))+")\n")
     print(ret_string)
 
-def ordinalize(n):
-    return str(n)+("th" if 4<=n%100<=20 else {1:"st",2:"nd",3:"rd"}.get(n%10, "th"))
+def ordinalize(num):
+    '''add ordinal number suffix to numbers'''
+    return str(num)+("th" if 4 <= num%100 <= 20 else {1:"st", 2:"nd", 3:"rd"}.get(num%10, "th"))
