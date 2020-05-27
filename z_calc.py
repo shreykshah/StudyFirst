@@ -53,7 +53,7 @@ def file_scores(last_name):
                 grades[group]["low"] += bstat[2]
                 grades[group]["usr_score"] += bstat[3]
                 num_tests += 1
-            except:
+            except ValueError:
                 pass
         bstat[0] = bstat[1] = bstat[2] = bstat[3] = 0.0
         for group in grades:
@@ -79,6 +79,6 @@ def print_course_inorder(courses):
         #                ","+ str(int(courses[course][1]*100))+")\n")
     print(ret_string)
 
-def ordinalize(n):
+def ordinalize(num):
     '''add ordinal number suffix to numbers'''
-    return str(n)+("th" if 4 <= n%100 <= 20 else {1:"st", 2:"nd", 3:"rd"}.get(n%10, "th"))
+    return str(num)+("th" if 4 <= num%100 <= 20 else {1:"st", 2:"nd", 3:"rd"}.get(num%10, "th"))
