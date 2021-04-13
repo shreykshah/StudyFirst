@@ -55,12 +55,14 @@ def file_scores(last_name):
                 grades[group]["low"] += bstat[2]
                 grades[group]["usr_score"] += bstat[3]
                 num_tests += 1
-            except ValueError:
+            except (ValueError, KeyError):
                 pass
         bstat[0] = bstat[1] = bstat[2] = bstat[3] = 0.0
         for group in grades:
             multiplier = (float(soup.find('tr', {"id":{"submission_group-"+group}})
                                 .find_next('span', {'class':'group_weight'}).text.strip())/100)
+            if (multiplier == 0.0): #equal weighting
+                multiplier = 100/len(grades)
             bstat[1] += grades[group]["high"] * multiplier
             bstat[0] += grades[group]["mean"] * multiplier
             bstat[2] += grades[group]["low"] * multiplier
